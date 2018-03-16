@@ -1,0 +1,161 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 26
+    buildToolsVersion "26.0.2"
+    defaultConfig {
+        applicationId "com.example.pver.high_gradle"
+        minSdkVersion 15
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    sourceSets {//目录指向配置
+
+        main {
+            //指定源码目录
+//            java {
+//                srcDir 'src/main-branch'
+//            }
+            //制定资源目录
+//            resources {
+//                srcDir 'src/main/res-activity'
+//            }
+            //3，打包时不想包含的文件和资源
+            java {
+                exclude ''
+            }
+            resources {
+                exclude ''
+            }
+
+            //4，默认layout下太多了，添加两个目录分类，也可以分开添加
+            main.res.srcDirs += ['src/main/res-activity', 'src/main/res-fragment']
+        }
+        //指定各个模式的路径
+//        debug.setRoot()
+//        release.setRoot()
+    }
+
+    signingConfigs {//签名配置
+
+        release {
+        }
+        debug {
+        }
+
+        /*release {//发布版签名配置
+            storeFile file('gh.keystore')//密钥文件路径
+            storePassword "123"//密钥文件密码
+            keyAlias "fk"//key别名
+            keyPassword "123"//key密码
+        }
+        debug {//debug版签名配置
+            storeFile file('gh.keystore')
+            storePassword "123"
+            keyAlias "fk"
+            keyPassword "123"
+        }*/
+    }
+
+    loadSigningConfigs()
+
+    buildTypes {
+
+        debug {
+            buildConfigField 'boolean', 'PROXY', 'true'
+            // 服务器配置
+            buildConfigField "String", "SERVERHEAD", "\"https://www.baidu.com/\""
+            //是否混淆
+            minifyEnabled false
+            zipAlignEnabled true
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+        }
+        release {
+
+            buildConfigField 'boolean', 'PROXY', 'false'
+            //正式服务器
+            buildConfigField "String", "SERVERHEAD", "\"https://tieba.baidu.com/\""
+            //混淆,混淆文件在proguardFiles后面配置,默认为app目录下的 “proguard-rules.pro”
+            minifyEnabled true
+            //内存对齐
+            zipAlignEnabled true
+            // 配置true,移除无用的resource文件,可以减小apk包的大小,有瘦身效果
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            //签名
+            signingConfig signingConfigs.release
+        }
+    }
+    buildTypes {
+
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+
+            signingConfig signingConfigs.release
+        }
+    }
+    productFlavors {
+
+        //通过buildConfigField来定义不同产品的特性，如常用的服务器等
+        dong {
+            manifestPlaceholders = [APP_NAME: "Dong"]
+            applicationId "com.example.dong"
+            versionCode 1
+            versionName "1.0.0-dong"
+            buildConfigField 'String', 'TAG', '"dong"'
+        }
+        hu {
+            manifestPlaceholders = [APP_NAME: "Hu"]
+            applicationId "com.example.hu"
+            versionCode 1
+            versionName "1.0.0-hu"
+            buildConfigField 'String', 'TAG', '"hu"'
+        }
+    }
+
+}
+
+/**
+ * 加载签名配置文件
+ */
+def loadSigningConfigs() {
+    def Properties props = new Properties()
+    def propFile = file('../signing.properties')
+    if (propFile.canRead()) {
+        props.load(new FileInputStream(propFile))
+        if (props != null && props.containsKey('RELEASE_STORE_FILE') && props.containsKey('RELEASE_STORE_PASSWORD') &&
+                props.containsKey('RELEASE_KEY_ALIAS') && props.containsKey('RELEASE_KEY_PASSWORD')) {
+            android.signingConfigs.release.storeFile = file(props['RELEASE_STORE_FILE'])
+            android.signingConfigs.release.storePassword = props['RELEASE_STORE_PASSWORD']
+            android.signingConfigs.release.keyAlias = props['RELEASE_KEY_ALIAS']
+            android.signingConfigs.release.keyPassword = props['RELEASE_KEY_PASSWORD']
+        } else if (props != null && props.containsKey('DEBUG_KEYSTORE') && props.containsKey('DEBUG_ALIAS') &&
+                props.containsKey('DEBUG_KEYSTORE_PWD') && props.containsKey('DEBUG_KEY_PWD')) {
+            android.signingConfigs.debug.storeFile = file(props['DEBUG_KEYSTORE'])
+            android.signingConfigs.debug.storePassword = props['DEBUG_KEYSTORE_PWD']
+            android.signingConfigs.debug.keyAlias = props['DEBUG_ALIAS']
+            android.signingConfigs.debug.keyPassword = props['DEBUG_KEY_PWD']
+        } else {
+            android.buildTypes.release.signingConfig = null
+        }
+    } else {
+        android.buildTypes.release.signingConfig = null
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:26.0.0-alpha1'
+    testCompile 'junit:junit:4.12'
+    dongCompile project(':dong')
+    huCompile project(':hu')
+}
